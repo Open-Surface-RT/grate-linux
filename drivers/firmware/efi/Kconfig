@@ -243,6 +243,73 @@ config EFI_DISABLE_PCI_DMA
 	  options "efi=disable_early_pci_dma" or "efi=no_disable_early_pci_dma"
 	  may be used to override this option.
 
+	menu "Windows RT devices"
+	config WINDOWS_RT
+		depends on EFI
+		bool "Windows RT support"
+		help
+		  Various options useful for Windows RT devices.
+
+	config WINDOWS_RT_SECUREBOOT_SKIP
+		bool "Skip secureboot check"
+		depends on WINDOWS_RT
+		help
+		  Skip secureboot check in EFI stub.
+
+		  This is needed for devices like:
+		  - Asus Vivo Tab RT (tf600t)
+		  - Lenovo Ideapad Yoga 11
+
+		  This isn't needed for devices with yahallo:
+		  - Microsoft Surface RT/2
+
+	config CMDLINE_FROM_FILE
+		bool "Read cmdline from file"
+		depends on WINDOWS_RT
+		help
+		  Reads EFI Stub cmdline from file (cmdline.txt).
+		  This is helpful when you want to boot without EFI bootloader
+		  or need to boot from goldenkey where no cmdline can be passed
+		  right now.
+
+		  Don't forget to include the dtb= param.
+
+	config UEFI_TEGRA_UART
+		bool "Tegra UART"
+		depends on ARCH_TEGRA
+		depends on WINDOWS_RT
+		help
+		  UEFI Stub sets up UART for kernel early_print debugging.
+		  Currently support:
+		  - tegra114: microSD port
+
+		choice
+			prompt "Select your SoC & UART port"
+			depends on UEFI_TEGRA_UART
+
+			config UEFI_TEGRA114_UARTA
+				bool "Tegra114 UART-A (micro SD port)"
+				depends on UEFI_TEGRA_UART
+				help
+				  UART-A output can be accessed on the micro SD
+				  port.
+
+			config UEFI_TEGRA30_UARTA
+				bool "tegra30 UART-A"
+				depends on UEFI_TEGRA_UART
+				help
+				  UART-A output can be accessed on the J14 OEM
+				  debug header.
+		endchoice
+
+	config UEFI_TEGRA_UART_MIRROR
+		bool "Mirror EFI stub output"
+		depends on UEFI_TEGRA_UART
+		help
+		  Mirrors all EFI Stub output to UART.
+
+	endmenu
+
 endmenu
 
 config EFI_EMBEDDED_FIRMWARE

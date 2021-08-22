@@ -164,6 +164,10 @@ int efi_printk(const char *fmt, ...)
 	va_end(args);
 
 	efi_puts(printf_buf);
+
+	if (IS_ENABLED(CONFIG_UEFI_TEGRA_UART_MIRROR))
+		tegra_uart_print(printf_buf);
+
 	if (printed >= sizeof(printf_buf)) {
 		efi_puts("[Message truncated]\n");
 		return -1;
@@ -751,3 +755,4 @@ efi_status_t efi_wait_for_key(unsigned long usec, efi_input_key_t *key)
 
 	return status;
 }
+

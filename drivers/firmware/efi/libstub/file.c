@@ -84,6 +84,68 @@ static efi_status_t efi_open_volume(efi_loaded_image_t *image,
 	return status;
 }
 
+/*
+ * Reads the new cmdline params from file and overrides the cmdline provided by
+ *   the loaded_image protocol.
+ * This is useful if you have no bootloader which can params to the UEFI stub.
+ * Or if you want to boot the kernel as bootarm.efi
+ */
+efi_status_t efi_open_read_cmdline_from_file(efi_loaded_image_t *image)
+{
+	efi_status_t status;
+	efi_file_protocol_t *volume = NULL;
+	efi_file_protocol_t *file = NULL;
+	int i;
+	unsigned long size = 0;
+	static char *file_data = NULL;
+	struct finfo fi = {.filename = L"cmdline.txt"};
+
+	status = efi_open_volume(image, &volume);
+	if (status != EFI_SUCCESS)
+		return status;
+
+	efi_info("Reading cmdline parameters from file: %ls\n", fi.filename);
+
+	status = efi_open_file(volume, &fi, &file, &size);
+	if (status != EFI_SUCCESS)
+		goto err_close_volume;
+
+	// Allocate pool twice as large for later conversion from ascii to unicode
+	status = efi_bs_call(allocate_pool, EFI_LOADER_DATA, size * 2,
+			     (void **)&file_data);
+	if (status != EFI_SUCCESS)
+		goto err_close_volume;
+
+	status = file->read(file, &size, file_data);
+	if (status != EFI_SUCCESS) {
+		efi_err("Failed to read file\n");
+		goto err_on_read_file;
+	}
+	file->close(file);
+
+	// convert ascii to Unicode
+	for (i = size-1; i >= 0; i--) {
+		file_data[i * 2] = file_data[i];
+		file_data[i * 2 + 1] = '\0';
+	}
+	file_data[(size-1)*2] = '\0';
+
+	// set new data
+	image->load_options = file_data;
+	image->load_options_size = size * 2;
+
+	efi_info("cmdline: %ls\n", (efi_char16_t*)image->load_options);
+
+	return EFI_SUCCESS;
+
+
+err_on_read_file:
+	file->close(file);
+
+err_close_volume:
+	return EFI_NOT_FOUND;
+}
+
 static int find_file_option(const efi_char16_t *cmdline, int cmdline_len,
 			    const efi_char16_t *prefix, int prefix_size,
 			    efi_char16_t *result, int result_len)

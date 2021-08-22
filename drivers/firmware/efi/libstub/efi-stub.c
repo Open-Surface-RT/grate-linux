@@ -136,6 +136,9 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 	enum efi_secureboot_mode secure_boot;
 	struct screen_info *si;
 	efi_properties_table_t *prop_tbl;
+	unsigned long max_addr;
+	enum winrt_device_names winrt_device = unknown_device;
+	int i;
 
 	efi_system_table = sys_table_arg;
 
@@ -150,6 +153,36 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 		goto fail;
 
 	/*
+	 * Figure out on which Windows RT device is booted.
+	 */
+	if (IS_ENABLED(CONFIG_WINDOWS_RT)) {
+		winrt_device = winrt_setup();
+	}
+
+	/*
+	 * Only set UART up if we know which device was booted.
+	 */
+	if (IS_ENABLED(CONFIG_UEFI_TEGRA_UART) && winrt_device < unknown_device)
+		tegra_uart_init();
+
+/*
+	u8 *iram = 0x40000000;
+	u32 iram_size = 0x40000;
+	char tmp[3];
+
+	for (i = 0; i < iram_size; i++) {
+		if (i % 16 == 0) {
+			tegra_uart_print("\n");
+		} else if (i % 8 == 0) {
+			tegra_uart_print(" ");
+		}
+		tmp[0] = "0123456789ABCDEF"[*(iram+i) & 0x0f];
+		tmp[1] = "0123456789ABCDEF"[(*(iram+i) >> 4) & 0x0f];
+		tmp[2] = '\0';
+		tegra_uart_print(tmp);
+	}
+*/
+	/*
 	 * Get a handle to the loaded image protocol.  This is used to get
 	 * information about the running image, such as size and the command
 	 * line.
@@ -159,6 +192,19 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 	if (status != EFI_SUCCESS) {
 		efi_err("Failed to get loaded image protocol\n");
 		goto fail;
+	}
+
+	/*
+	 * Load cmdline parameters like dtb=, initrd=, root= from file.
+	 * The file is called "cmdline.txt" and should be located next to the kernel.
+	 * This will override the cmdline passed by bootloader.
+	 */
+	if (IS_ENABLED(CONFIG_CMDLINE_FROM_FILE)) {
+		status = efi_read_cmdline_from_file(image);
+		if (status != EFI_SUCCESS) {
+			efi_err("Unable to read cmdline parameters from file\n");
+			goto fail;
+		}
 	}
 
 	/*
@@ -215,9 +261,13 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 	 * Unauthenticated device tree data is a security hazard, so ignore
 	 * 'dtb=' unless UEFI Secure Boot is disabled.  We assume that secure
 	 * boot is enabled if we can't determine its state.
+	 *
+	 * Most Windows RT devices can't disable secureboot so they need to skip
+	 * this check.
 	 */
 	if (!IS_ENABLED(CONFIG_EFI_ARMSTUB_DTB_LOADER) ||
-	     secure_boot != efi_secureboot_mode_disabled) {
+	    (secure_boot != efi_secureboot_mode_disabled &&
+	    !IS_ENABLED(CONFIG_WINDOWS_RT_SECUREBOOT_SKIP))) {
 		if (strstr(cmdline_ptr, "dtb="))
 			efi_err("Ignoring DTB from command line.\n");
 	} else {
