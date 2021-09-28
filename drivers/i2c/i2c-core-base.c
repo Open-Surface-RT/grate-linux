@@ -823,7 +823,7 @@ static int i2c_check_addr_validity(unsigned int addr, unsigned short flags)
 {
 	// Fix for Surface RT tCover support.
 	// tCover uses address 0x00 which is reserved for general call
-	if (addr == 0x00 && of_machine_is_compatible("microsoft,surface-rt")) {
+	if (addr == 0x00 && (of_machine_is_compatible("microsoft,surface-rt") || of_machine_is_compatible("microsoft,surface-rt-2"))) {
 		return 0;
 	}
 
@@ -857,7 +857,7 @@ int i2c_check_7bit_addr_validity_strict(unsigned short addr)
 	 */
 	// Fix for Surface RT tCover support.
 	// tCover uses address 0x00 which is reserved for general call
-	if (addr == 0x00 && of_machine_is_compatible("microsoft,surface-rt")) {
+	if (addr == 0x00 && (of_machine_is_compatible("microsoft,surface-rt") || of_machine_is_compatible("microsoft,surface-rt-2"))) {
 		return 0;
 	}
 
