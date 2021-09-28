@@ -859,3 +859,5 @@ efi_enable_reset_attack_mitigation(void) { }
 void efi_retrieve_tpm2_eventlog(void);
 
 #endif
+
+void uart_print(const char *string);
