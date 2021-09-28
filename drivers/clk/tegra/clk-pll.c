@@ -564,6 +564,7 @@ static int _calc_rate(struct clk_hw *hw, struct tegra_clk_pll_freq_table *cfg,
 	switch (parent_rate) {
 	case 12000000:
 	case 26000000:
+	case 48000000:
 		cfreq = (rate <= 1000000 * 1000) ? 1000000 : 2000000;
 		break;
 	case 13000000:

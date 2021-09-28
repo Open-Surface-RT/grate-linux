@@ -362,13 +362,14 @@ static struct tegra_clk_pll_freq_table pll_a_freq_table[] = {
 	{ 28800000, 282240000, 245, 25, 1, 8 },
 	{ 28800000, 368640000, 320, 25, 1, 8 },
 	{ 28800000, 240000000, 200, 24, 1, 8 },
+	{ 48000000, 564480000, 490, 24, 1, 8 },
 	{        0,         0,   0,  0, 0, 0 },
 };
 
 
 static struct tegra_clk_pll_params pll_a_params = {
 	.input_min = 2000000,
-	.input_max = 31000000,
+	.input_max = 48000000,
 	.cf_min = 1000000,
 	.cf_max = 6000000,
 	.vco_min = 200000000,
