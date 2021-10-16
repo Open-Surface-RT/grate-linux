@@ -59,10 +59,54 @@
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 			};
+
+			panel-reset {
+				nvidia,pins = "gmi_ad8_ph0";
+				nvidia,function = "gmi";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+			};
+
+			panel-backlight {
+				nvidia,pins = "gmi_ad10_ph2";
+				nvidia,function = "gmi";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+			};
+
+			tps65090-interrupt {
+				nvidia,pins = "gmi_cs0_n_pj0";
+				nvidia,function = "gmi";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
+			};
+
+			pwm {
+				nvidia,pins = "dvfs_pwm_px0";
+				nvidia,function = "cldvfs";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+			};
+
+			gmi_ad9_ph1 {
+				nvidia,pins = "gmi_ad9_ph1";
+				nvidia,function = "pwm1";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+			};
 		};
 	};
 
 	serial@70006000 {
+		status = "okay";
+	};
+
+	pwm@7000a000 {
 		status = "okay";
 	};
 
@@ -126,15 +170,17 @@
 		};
 
 		dsi@54300000 {
-			status = "disabled"; // doesn't work yet
+			status = "okay";
 
-			//avdd-dsi-csi-supply = <&avdd_1v2_reg>;
+			avdd-dsi-csi-supply = <&tps65913_ldo3>;
 
 			panel@0 {
-				compatible = "panel-simple-dsi";
+				compatible = "samsung,106hl02";
 				reg = <0>;
 
-				//power-supply = <&avdd_lcd_reg>;
+				reset-gpios = <&gpio TEGRA_GPIO(H, 0) GPIO_ACTIVE_LOW>;
+
+				power-supply = <&tps65090_fet4>;
 				//backlight = <&backlight>;
 			};
 		};
@@ -205,12 +251,23 @@
 		clock-frequency = <400000>;
 
 		tps65090@48 {
-			status = "disabled"; // it is there but i am not sure what it does
-
 			compatible = "ti,tps65090";
 			reg = <0x48>;
-			interrupt-parent = <&gpio>;
-			interrupts = <TEGRA_GPIO(J, 0) IRQ_TYPE_LEVEL_HIGH>;
+
+			// please fix it
+			// interrupt-parent = <&gpio>;
+			// interrupts = <TEGRA_GPIO(J, 0) IRQ_TYPE_LEVEL_HIGH>;
+
+			regulators {
+				/* let's keep voltage constraints from bootloader */
+
+				tps65090_fet1: fet1 {
+					regulator-boot-on;
+					regulator-always-on;
+				};
+
+				tps65090_fet4: fet4 { };
+			};
 		};
 
 		palmas: pmic@58 {
@@ -240,6 +297,9 @@
 						regulator-always-on;
 						regulator-boot-on;
 					};
+
+					/* let's keep voltage constraints from bootloader here as well */
+					tps65913_ldo3: ldo3 { };
 				};
 			};
 
@@ -349,5 +409,16 @@
 		status = "okay";
 		bus-width = <8>;
 		non-removable;
+	};
+
+	backlight: backlight {
+		compatible = "pwm-backlight";
+
+		enable-gpios = <&gpio TEGRA_GPIO(H, 2) GPIO_ACTIVE_HIGH>; // may be wrong
+		power-supply = <&tps65090_fet1>;
+		pwms = <&pwm 1 1000000>;
+
+		brightness-levels = <1 255>;
+		num-interpolated-steps = <254>;
 	};
 };
