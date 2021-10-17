@@ -411,6 +411,15 @@
 		non-removable;
 	};
 
+	usb@7d000000 {
+		status = "okay";
+	};
+
+	usb-phy@7d000000 {
+		status = "okay";
+		/* TODO: vbus-supply */
+	};
+
 	backlight: backlight {
 		compatible = "pwm-backlight";
 
