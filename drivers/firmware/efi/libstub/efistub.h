@@ -910,3 +910,8 @@ enum winrt_device_names winrt_setup(void);
 void tegra_uart_print(const char *string);
 void tegra_uart_init(void);
 
+/**
+ * I2C Stuff
+ */
+int i2c_recv_buf_small(u8 *buf, u32 size, u32 idx, u32 x, u32 y);
+

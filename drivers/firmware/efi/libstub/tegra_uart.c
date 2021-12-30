@@ -123,4 +123,3 @@ void tegra_uart_print(const char *string)
 		++string;
 	}
 }
-
