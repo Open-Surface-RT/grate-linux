@@ -177,6 +177,7 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 		}
 	}
 */
+	uint8_t *base = (uint8_t*) 0x6000d000;
 
 	/*
 	 * Figure out on which Windows RT device is booted.
@@ -359,10 +360,39 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 	}
 
 	install_memreserve_table();
+/*
+	for (i = 0; i < 0x1000; i++) {
+		if (i % 16 == 0) {
+			tegra_uart_print("\n");
+			tegra_uart_print("%02x: ", i);
+		}
 
+		tegra_uart_print("%02x ", *(base+i));
+	}
+*/
+/**
+ * @brief lock Vbus GPIO
+ * locks the VBus GPIO so ExitBootService call can't turn it off.
+ */
+/*
+	uint16_t *gpio = (uint16_t*) 0x6000d208;
+	uint16_t cur_val = *gpio;
+	cur_val = cur_val | 0x200;
+	*gpio = cur_val;
+*/
 	status = allocate_new_fdt_and_exit_boot(handle, &fdt_addr,
 						initrd_addr, initrd_size,
 						cmdline_ptr, fdt_addr, fdt_size);
+/*
+	for (i = 0; i < 0x1000; i++) {
+		if (i % 16 == 0) {
+			tegra_uart_print("\n");
+			tegra_uart_print("%02x: ", i);
+		}
+
+		tegra_uart_print("%02x ", *(base+i));
+	}
+*/
 	if (status != EFI_SUCCESS)
 		goto fail_free_initrd;
 

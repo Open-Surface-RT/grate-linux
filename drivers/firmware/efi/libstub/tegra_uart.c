@@ -98,28 +98,34 @@ void tegra_uart_init()
 	tegra_uart_print("hi from tegra_uart_init :)\n");
 }
 
-void tegra_uart_print(const char *string)
+void tegra_uart_print(const char *fmt, ...)
 {
+	char printf_buf[256];
+	va_list args;
+	int printed_size;
+	int i;
+
 	/* If uart isn't setup (yet); send nothing */
 	if (reg_read(PMC_BASE, APBDEV_PMC_SCRATCH42_0) != MAGIC_VALUE)
 		return;
 
+	va_start(args, fmt);
+	printed_size = vsnprintf(printf_buf, sizeof(printf_buf), fmt, args);
+	va_end(args);
+
 	/* send all characters until NULL to uart-N */
-	while (*string) {
+	for (i = 0; i < printed_size; i++) {
 		/* put the char into the tx fifo */
-		if (*string == '\n') {
+		if (printf_buf[i] == '\n') {
 			reg_write(UART_BASE, UART_THR_DLAB, '\r');
 			while (!((reg_read(UART_BASE, UART_LSR) >> 5) & 0x01))
 				;
 		}
 
-		reg_write(UART_BASE, UART_THR_DLAB, (char) *string);
+		reg_write(UART_BASE, UART_THR_DLAB, (char) printf_buf[i]);
 
 		/* wait for tx fifo to clear */
 		while (!((reg_read(UART_BASE, UART_LSR) >> 5) & 0x01))
 			;
-
-		/* move on to next char */
-		++string;
 	}
 }

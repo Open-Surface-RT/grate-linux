@@ -907,7 +907,7 @@ enum winrt_device_names winrt_setup(void);
 /**
  * Tegra specific UART stuff
  */
-void tegra_uart_print(const char *string);
+void tegra_uart_print(const char *string, ...);
 void tegra_uart_init(void);
 
 /**
