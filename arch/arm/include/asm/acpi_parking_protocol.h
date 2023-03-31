@@ -12,7 +12,7 @@ static inline bool acpi_parking_protocol_available(void)
 {
 	return IS_ENABLED(CONFIG_SMP) && (
 		of_machine_is_compatible("microsoft,surface-rt-efi") ||
-		of_machine_is_compatible("microsoft,surface-2")
+		of_machine_is_compatible("microsoft,surface-2-efi")
 	);
 }
 

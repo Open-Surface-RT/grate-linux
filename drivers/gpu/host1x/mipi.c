@@ -319,6 +319,7 @@ int tegra_mipi_start_calibration(struct tegra_mipi_device *device)
 	int err;
 
 	err = clk_enable(device->mipi->clk);
+	printf("Right before the error?\n");
 	if (err < 0)
 		return err;
 

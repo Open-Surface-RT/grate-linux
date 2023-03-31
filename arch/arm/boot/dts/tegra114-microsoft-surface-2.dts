@@ -131,7 +131,7 @@
 		dsi@54300000 {
 			status = "okay";
 
-			avdd-dsi-csi-supply = <&tps65913_ldo3>;
+			//avdd-dsi-csi-supply = <&tps65913_ldo3>; // UEFI says no to this.
 
 			panel@0 {
 				compatible = "samsung,106hl02";
@@ -161,7 +161,7 @@
 
 		state_default: pinmux {
 			/* UART A RX ??? */
-			/*
+			
 			sdmmc3_cmd_pa7 {
 				nvidia,pins = "sdmmc3_cmd_pa7";
 				nvidia,function = "uarta";
@@ -169,10 +169,10 @@
 				nvidia,tristate = <TEGRA_PIN_ENABLE>;
 				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 			};
-			*/
+			
 
 			/* UART A TX */
-			/*
+			
 			sdmmc3_dat1_pb6 {
 				nvidia,pins = "sdmmc3_dat1_pb6";
 				nvidia,function = "uarta";
@@ -180,7 +180,7 @@
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 			};
-			*/
+			
 
 			panel-backlight {
 				nvidia,pins = "gmi_ad8_ph0";
@@ -197,18 +197,6 @@
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 			};
-
-/*
-			usb_vbus_en0_pn4 {
-				nvidia,pins = "usb_vbus_en0_pn4";
-				nvidia,function = "usb";
-				nvidia,pull = <TEGRA_PIN_PULL_UP>;
-				nvidia,tristate = <TEGRA_PIN_DISABLE>;
-				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
-				nvidia,lock = <TEGRA_PIN_DISABLE>;
-				nvidia,open-drain = <TEGRA_PIN_ENABLE>;
-			};
-*/
 		};
 	};
 
@@ -246,6 +234,7 @@
 			hid-descr-addr = <0x0041>;
 			interrupt-parent = <&gpio>;
 			interrupts = <TEGRA_GPIO(C, 7) IRQ_TYPE_LEVEL_LOW>;
+			//vdd-supply = <&sensor_hub_reg>;
 		};
 	};
 
@@ -299,7 +288,7 @@
 
 	i2c@7000d000 {
 		status = "okay";
-		clock-frequency = <400000>;
+		clock-frequency = <1400000>;
 
 		// Battery Charger, SMPS, LDOs, FETs
 		pmic@48 {
@@ -311,14 +300,15 @@
 
 			infet6-supply = <&stub_sd_reg>;
 
-/*
 			charger {
 				compatible = "ti,tps65090-charger";
 				//ti,enable-low-current-chrg;
 			};
-*/
+
 
 			regulators {
+				/*
+				// UEFI says no to all dcdc
 				tps65090_dcdc1_reg: dcdc1 {
 					regulator-name = "vdd-sys-5v0";
 					regulator-always-on;
@@ -330,13 +320,13 @@
 					regulator-always-on;
 					regulator-boot-on;
 				};
-/*
-				tps65090_dcdc3_reg: dcdc3 {
-					regulator-name = "vdd-ao";
-					regulator-always-on;
-					regulator-boot-on;
-				};
-*/
+				*/
+				//tps65090_dcdc3_reg: dcdc3 {
+				//	regulator-name = "vdd-ao";
+				//	regulator-always-on;
+				//	regulator-boot-on;
+				//};
+
 				ldo1 {
 					regulator-name = "vdd-sby-5v0";
 					regulator-always-on;
@@ -353,28 +343,30 @@
 					regulator-always-on;
 				};
 
-/*
+
 				tps65090_fet2: fet2 {
 					regulator-always-on;
 				};
-*/
 
-				/* No FET3 - crash boot - can't enable */
+
+				// No FET3 - crash boot - can't enable
+				// UEFI says no
 
 				tps65090_fet4: fet4 {
 					//regulator-name = "vdd-lcd";
 					regulator-always-on;
 				};
 
-				/* No FET5 - crash boot - can't enable */
+				// No FET5 - crash boot - can't enable
+				// UEFI says enable but PowerGood signal isn't present
 
 				tps65090_fet6: fet6 {
 					regulator-name = "vdd-sd-slot";
 					regulator-always-on;
 				};
 
-				/* No FET7 - crash boot - can't enable */
-
+				// No FET7 - crash boot - can't enable
+				// UEFI says no
 			};
 		};
 
@@ -387,6 +379,7 @@
 			interrupt-controller;
 
 			ti,system-power-controller;
+			ti,power-ctrl;
 
 			palmas_gpio: gpio {
 				compatible = "ti,palmas-gpio";
@@ -400,46 +393,135 @@
 				ldo9-in-supply = <&stub_sd_reg>;
 
 				ldousb-in-supply = <&stub_audio_reg>;
-				ldoln-in-supply = <&tps65090_fet4>;
+				//ldoln-in-supply = <&tps65090_fet4>;
+
+				ti,ldo6-vibrator;
 
 				regulators {
-
-					/* NO SMPS10 */
-					/* No regen1 */
-					/* No reldolnregulator-boot-on;
+					smps123 {
+						regulator-name = "vdd-cpu";
+						regulator-min-microvolt = <1100000>;
+						regulator-max-microvolt = <1100000>;
+						regulator-always-on;
+						regulator-boot-on;
+						ti,roof-floor = <1>;
+						ti,mode-sleep = <0>;
+						
+						regulator-ramp-delay = <2500>;
+						ti,warm-reset;
+					};
+					
+					smps45 {
+						regulator-name = "vdd-core";
+						regulator-min-microvolt = <1100000>;
+						regulator-max-microvolt = <1100000>;
+						regulator-always-on;
+						regulator-boot-on;
+						ti,roof-floor = <1>;
+						ti,mode-sleep = <0>;
+						regulator-ramp-delay = <5000>;
+						ti,warm-reset;
 					};
 
+					// disabled in UEFI
+					/*
+					smps6 {
+						regulator-name = "dunno";
+						regulator-min-microvolt = <850000>;
+						regulator-max-microvolt = <850000>;
+
+
+						ti,roof-floor = <1>;
+						ti,mode-sleep = <0>;
+						regulator-ramp-delay = <5000>;
+						ti,warm-reset;
+					};
+					*/
+					
+					/* No SMPS7 */
+					
+					tps65913_smps8: smps8 {
+						regulator-name = "vdd-1v8";
+						regulator-min-microvolt = <1800000>;
+						regulator-max-microvolt = <1800000>;
+						regulator-always-on;
+						regulator-boot-on;
+						ti,roof-floor = <1>;
+						ti,mode-sleep = <0>;
+						regulator-ramp-delay = <5000>;
+						ti,warm-reset;
+					};
+					
+					tps65913_smps9: smps9 {
+						regulator-name = "vdd-sd";
+						regulator-min-microvolt = <1050000>;
+						regulator-max-microvolt = <1050000>;
+						regulator-always-on;
+						ti,warm-reset;
+					};
+					
+					/* No SMPS10 */
+					
+					ldo1 {
+						regulator-name = "dunno1";
+						regulator-min-microvolt = <1200000>;
+						regulator-max-microvolt = <1200000>;
+						regulator-always-on;
+						regulator-boot-on;
+					};
+					
 					ldo2 {
-						regulator-name = "avdd-cam2";
+						regulator-name = "dunno2";
+						regulator-min-microvolt = <2800000>;
+						regulator-max-microvolt = <2800000>;
 						regulator-always-on;
 						regulator-boot-on;
 					};
-*/
-					tps65913_ldo3: ldo3 {};
-
+					
+					/* No LDO3 */
 					/* No LDO4 */
-					/* No LDO5 */
-					/* No LDO6 */
-/*
-					ldo7 {
-						regulator-name = "vdd-af-cam1";
+					
+					ldo5 {
+						regulator-name = "dunno3";
+						regulator-min-microvolt = <1800000>;
+						regulator-max-microvolt = <1800000>;
 						regulator-always-on;
 						regulator-boot-on;
 					};
-
+					
+					/* No LDO6 */
+					
+					ldo7 {
+						regulator-name = "dunno4";
+						regulator-min-microvolt = <1800000>;
+						regulator-max-microvolt = <1800000>;
+						regulator-always-on;
+						regulator-boot-on;
+					};
+					
 					ldo8 {
 						regulator-name = "vdd-rtc";
+						regulator-min-microvolt = <1200000>;
+						regulator-max-microvolt = <1200000>;
 						regulator-always-on;
 						regulator-boot-on;
 					};
-*/
+					
 					tps65913_ldo9: ldo9 {
 						regulator-name = "vddio-sdmmc-2";
 						regulator-min-microvolt = <1800000>;
 						regulator-max-microvolt = <3300000>;
 						regulator-always-on;
+						// bypass
 					};
-
+					
+					ldoln {
+						regulator-name = "dunno5";
+						regulator-min-microvolt = <1800000>;
+						regulator-max-microvolt = <1800000>;
+						regulator-always-on;
+					};
+					
 					ldousb {
 						regulator-name = "avdd-usb";
 						regulator-min-microvolt = <3300000>;
@@ -447,13 +529,20 @@
 						regulator-always-on;
 						regulator-boot-on;
 					};
-					/* NO LDOLN */
-					tps65913_ldoln: ldoln {
-						regulator-min-microvolt = <1800000>;
-						regulator-max-microvolt = <1800000>;
+					
+
+					regen1 {
+						regulator-name = "dunno6";
+						regulator-max-microvolt = <5000000>;
 						regulator-always-on;
 						regulator-boot-on;
-						regulator-enable-ramp-delay = <5500>;
+					};
+					
+					regen2 {
+						regulator-name = "dunno7";
+						regulator-max-microvolt = <5000000>;
+						regulator-always-on;
+						regulator-boot-on;
 					};
 				};
 			};
@@ -463,19 +552,6 @@
 				interrupt-parent = <&palmas>;
 				interrupts = <8 0>;
 			};
-/*
-			pinmux {
-				compatible = "ti,tps65913-pinctrl";
-				//ti,palmas-enable-dvfs1;
-				pinctrl-names = "default";
-				pinctrl-0 = <&palmas_default>;
-
-				palmas_default: pinmux {
-					// empty
-				};
-
-			};
-*/
 		};
 	};
 
@@ -526,7 +602,7 @@
 
 	/* SD - SDMMC-3 */
 	mmc@78000400 {
-		status = "okay"; // disable uart in UEFI stub
+		status = "disabled"; // disable uart in UEFI stub
 		bus-width = <4>;
 		cd-gpios = <&gpio TEGRA_GPIO(V, 2) GPIO_ACTIVE_LOW>;
 		vqmmc-supply = <&tps65913_ldo9>; // io voltage
@@ -551,11 +627,6 @@
 		/* TODO: vbus-supply */
 		vbus-supply = <&usb3_vbus_reg>;
 
-/*
-		nvidia,xcvr-setup = <7>;
-		nvidia,xcvr-lsfslew = <2>;
-		nvidia,xcvr-lsrslew = <2>;
-*/
 	};
 
 	usb3_vbus_reg: regulator-usb3 {
@@ -567,16 +638,6 @@
 		gpio = <&gpio TEGRA_GPIO(K, 1) GPIO_ACTIVE_HIGH>;
 		//regulator-enable-ramp-delay = <100000>; //offset of 0x4000 a 100ms
 		//vin-supply = <&tps65090_dcdc1_reg>;
-/*
-		compatible = "regulator-fixed";
-		regulator-name = "usb1_vbus";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		enable-active-high;
-		gpio = <&gpio TEGRA_GPIO(N, 4) GPIO_ACTIVE_HIGH>;
-		gpio-open-drain;
-		vin-supply = <&tps65090_dcdc1_reg>;
-*/
 	};
 
 	stub_sd_reg: stub_sd {
@@ -590,7 +651,7 @@
 		compatible = "regulator-fixed";
 		regulator-name = "stub_audio";
 	};
-
+/*
 	what_ever_reg: what_ever {
 		compatible = "regulator-fixed";
 		regulator-name = "what";
@@ -599,8 +660,6 @@
 		gpio = <&gpio TEGRA_GPIO(H, 2) GPIO_ACTIVE_HIGH>;
 		regulator-always-on;
 	};
-
-	/*
 
 	touchscreen_reg: touchscreen_vdd {
 		compatible = "regulator-fixed";
@@ -611,8 +670,6 @@
 		regulator-always-on;
 	};
 
-	
-
 	sensor_hub_reg: sensor_hub_vdd {
 		compatible = "regulator-fixed";
 		regulator-name = "sensor_hub_vdd";
@@ -621,5 +678,5 @@
 		gpio = <&gpio TEGRA_GPIO(X, 6) GPIO_ACTIVE_HIGH>;
 		regulator-always-on;
 	};
-	*/
+*/
 };

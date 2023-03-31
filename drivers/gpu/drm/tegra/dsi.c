@@ -695,8 +695,10 @@ static int tegra_dsi_pad_calibrate(struct tegra_dsi *dsi)
 	tegra_dsi_writel(dsi, value, DSI_PAD_CONTROL_3);
 
 	err = tegra_mipi_start_calibration(dsi->mipi);
-	if (err < 0)
+	if (err < 0) {
+		printk("error tegra_mipi_start_calibration\n");
 		return err;
+	}
 
 	return tegra_mipi_finish_calibration(dsi->mipi);
 }

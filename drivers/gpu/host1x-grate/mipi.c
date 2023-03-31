@@ -302,6 +302,11 @@ int tegra_mipi_finish_calibration(struct tegra_mipi_device *device)
 					 !(value & MIPI_CAL_STATUS_ACTIVE) &&
 					 (value & MIPI_CAL_STATUS_DONE), 50,
 					 250000);
+					 
+	printk("err: %d\n", err);
+	printk("value: %08x\n", value);
+	printk("What the fuck\n");
+					 
 	mutex_unlock(&device->mipi->lock);
 	clk_disable(device->mipi->clk);
 
