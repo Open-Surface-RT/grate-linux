@@ -14,7 +14,7 @@ struct samsung_106hl02 {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi;
 	struct regulator *supply;
-	struct gpio_desc *reset_gpio;
+//	struct gpio_desc *reset_gpio;
 	bool prepared;
 };
 
@@ -23,6 +23,7 @@ static inline struct samsung_106hl02 *to_samsung_106hl02(struct drm_panel *panel
 	return container_of(panel, struct samsung_106hl02, panel);
 }
 
+/*
 static void samsung_106hl02_reset(struct samsung_106hl02 *ctx)
 {
 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
@@ -32,7 +33,7 @@ static void samsung_106hl02_reset(struct samsung_106hl02 *ctx)
 	//gpiod_set_value_cansleep(ctx->reset_gpio, 0);
 	//msleep(25);
 }
-
+*/
 static int samsung_106hl02_on(struct samsung_106hl02 *ctx)
 {
 	struct mipi_dsi_device *dsi = ctx->dsi;
@@ -94,12 +95,12 @@ static int samsung_106hl02_prepare(struct drm_panel *panel)
 		return ret;
 	}
 
-	samsung_106hl02_reset(ctx);
+	//samsung_106hl02_reset(ctx);
 
 	ret = samsung_106hl02_on(ctx);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize panel: %d\n", ret);
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		//gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 		regulator_disable(ctx->supply);
 		return ret;
 	}
@@ -121,7 +122,7 @@ static int samsung_106hl02_unprepare(struct drm_panel *panel)
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
-	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+	//gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 	regulator_disable(ctx->supply);
 
 	ctx->prepared = false;
@@ -181,12 +182,12 @@ static int samsung_106hl02_probe(struct mipi_dsi_device *dsi)
 	if (IS_ERR(ctx->supply))
 		return dev_err_probe(dev, PTR_ERR(ctx->supply),
 				     "Failed to get power regulator\n");
-
+/*
 	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
 	if (IS_ERR(ctx->reset_gpio))
 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
 				     "Failed to get reset-gpios\n");
-
+*/
 	ctx->dsi = dsi;
 	mipi_dsi_set_drvdata(dsi, ctx);
 
