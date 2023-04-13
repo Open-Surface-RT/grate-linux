@@ -1,0 +1,88 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+/dts-v1/;
+
+#include "tegra114-microsoft-surface-2.dts"
+
+/ {
+	compatible = "microsoft,surface-2-efi", "microsoft,surface-2", "nvidia,tegra114";
+
+	// Works for APX but only after replug. Not immediately after boot.
+	// Not acceptable for now.
+	i2c-cover {
+		compatible = "i2c-hotplug-gpio";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		interrupts-extended = <&gpio TEGRA_GPIO(S, 0) IRQ_TYPE_EDGE_BOTH>;
+		detect-gpios = <&gpio TEGRA_GPIO(S, 0) GPIO_ACTIVE_HIGH>;
+
+		i2c-parent = <&i2c1>;
+
+		cover@0 {
+			compatible = "hid-over-i2c";
+			reg = <0x00>;
+			hid-descr-addr = <0x0041>;
+			interrupt-parent = <&gpio>;
+			interrupts = <TEGRA_GPIO(C, 7) IRQ_TYPE_LEVEL_LOW>;
+			//vdd-supply = <&sensor_hub_reg>;
+		};
+
+	};
+
+	i2c@7000c400 {
+		status = "okay";
+		clock-frequency = <100000>;
+		
+		// Doesn't work for APX. Device doesn't show up at all or disconnects
+		touchscreen@4b {
+			compatible = "hid-over-i2c";
+			reg = <0x4b>;
+			hid-descr-addr = <0x0000>;
+			interrupt-parent = <&gpio>;
+			interrupts = <TEGRA_GPIO(O, 6) IRQ_TYPE_LEVEL_LOW>;
+			//vdd-supply = <&touchscreen_reg>;
+		};
+	};
+	
+	// Firmware doesn't come active in time.
+	/* WiFi - SDMMC-1 */
+	mmc@78000000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		status = "okay";
+
+		bus-width = <4>;
+		cap-power-off-card;
+		keep-power-in-suspend;
+		max-frequency = <100000000>;
+
+		assigned-clocks = <&tegra_car TEGRA114_CLK_SDMMC1>;
+		assigned-clock-parents = <&tegra_car TEGRA114_CLK_PLL_C>;
+		assigned-clock-rates = <100000000>;
+
+		mmc-pwrseq = <&mrvl_wifi_pwrseq>;
+		//vqmmc-supply = <&vqmmc_wifi_reg>;
+
+		// Marvell 88W8797 WiFi 
+		wifi@1 {
+			compatible = "marvell,sd8897";
+			reg = <1>;
+			interrupt-parent = <&gpio>;
+			interrupts = <TEGRA_GPIO(U, 5) IRQ_TYPE_LEVEL_LOW>; // change back to LOW to comply ACPI
+		};
+	};
+
+	mrvl_wifi_pwrseq: wifi-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+
+		clocks = <&tegra_pmc TEGRA_PMC_CLK_BLINK>;
+		clock-names = "ext_clock";
+
+		post-power-on-delay-ms = <300>;
+		power-off-delay-us = <300>;
+		// Reset and enable: K0, K2, K4
+	};
+};
