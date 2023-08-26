@@ -594,12 +594,18 @@ static void l2c310_configure(void __iomem *base)
 
 static int l2c310_starting_cpu(unsigned int cpu)
 {
+	if (outer_cache.starting_cpu) {
+		return outer_cache.starting_cpu(cpu);
+	}
 	set_auxcr(get_auxcr() | BIT(3) | BIT(2) | BIT(1));
 	return 0;
 }
 
 static int l2c310_dying_cpu(unsigned int cpu)
 {
+	if (outer_cache.dying_cpu) {
+		return outer_cache.dying_cpu(cpu);
+	}
 	set_auxcr(get_auxcr() & ~(BIT(3) | BIT(2) | BIT(1)));
 	return 0;
 }
@@ -852,6 +858,10 @@ static int __init __l2c_init(const struct l2c_init_data *data,
 	fns = data->outer_cache;
 	fns.write_sec = outer_cache.write_sec;
 	fns.configure = outer_cache.configure;
+	fns.disable = outer_cache.disable;
+	fns.resume = outer_cache.resume;
+	fns.starting_cpu = outer_cache.starting_cpu;
+	fns.dying_cpu = outer_cache.dying_cpu;
 	if (data->fixup)
 		data->fixup(l2x0_base, cache_id, &fns);
 	if (nosync) {

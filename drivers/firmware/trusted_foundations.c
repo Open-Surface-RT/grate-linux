@@ -30,6 +30,12 @@
 #define TF_CPU_PM_S1		0xffffffe4
 #define TF_CPU_PM_S1_NOFLUSH_L2	0xffffffe7
 
+#define TZ_L2C310_SERVICE 0x2
+#define TZ_L2C310_METHOD_ENABLE 0x0
+#define TZ_L2C310_METHOD_DISABLE 0x1
+#define TZ_L2C310_METHOD_ENABLE_WRITEBACK 0x2
+#define TZ_L2C310_METHOD_DISABLE_WRITEBACK 0x3
+#define TZ_L2C310_METHOD_ENABLE_FLZ 0x4
 static unsigned long tf_idle_mode = TF_PM_MODE_NONE;
 static unsigned long cpu_boot_addr;
 
@@ -132,9 +138,59 @@ static void tf_cache_write_sec(unsigned long val, unsigned int reg)
 	}
 }
 
+static void tz_cache_write_sec(unsigned long val, unsigned int reg)
+{
+	switch (reg) {
+	case L2X0_CTRL:
+		if (val == L2X0_CTRL_EN)
+			tf_generic_smc(TZ_L2C310_SERVICE, TZ_L2C310_METHOD_ENABLE, 0);
+		else
+			tf_generic_smc(TZ_L2C310_SERVICE, TZ_L2C310_METHOD_DISABLE, 0);
+		break;
+
+	default:
+		break;
+	}
+}
+
+static void tz_l2c310_disable(void)
+{
+	tf_generic_smc(TZ_L2C310_SERVICE, TZ_L2C310_METHOD_DISABLE, 0);
+}
+
+static void tz_l2c310_resume(void)
+{
+	tf_generic_smc(TZ_L2C310_SERVICE, TZ_L2C310_METHOD_ENABLE, 0);
+	tf_generic_smc(TZ_L2C310_SERVICE, TZ_L2C310_METHOD_ENABLE_FLZ, 0);
+}
+
+static int tz_l2c310_starting_cpu(unsigned int cpu)
+{
+	/* called when L2C310's full line of zeros enabled */
+	tf_generic_smc(TZ_L2C310_SERVICE, TZ_L2C310_METHOD_ENABLE_FLZ, 0);
+	return 0;
+}
+
+static int tz_l2c310_dying_cpu(unsigned int cpu)
+{
+	tf_generic_smc(TZ_L2C310_SERVICE, TZ_L2C310_METHOD_DISABLE, 0);
+	return 0;
+}
+
 static int tf_init_cache(void)
 {
 	outer_cache.write_sec = tf_cache_write_sec;
+
+	return 0;
+}
+
+static int tz_init_cache(void)
+{
+	outer_cache.write_sec = tz_cache_write_sec;
+	outer_cache.disable = tz_l2c310_disable;
+	outer_cache.resume = tz_l2c310_resume;
+	outer_cache.starting_cpu = tz_l2c310_starting_cpu;
+	outer_cache.dying_cpu = tz_l2c310_dying_cpu;
 
 	return 0;
 }
@@ -148,13 +204,23 @@ static const struct firmware_ops trusted_foundations_ops = {
 #endif
 };
 
+static const struct firmware_ops trusted_foundations_surface_ops = {
+#ifdef CONFIG_CACHE_L2X0
+	.l2x0_init = tz_init_cache,
+#endif
+};
+
 void register_trusted_foundations(struct trusted_foundations_platform_data *pd)
 {
 	/*
 	 * we are not using version information for now since currently
 	 * supported SMCs are compatible with all TF releases
 	 */
-	register_firmware_ops(&trusted_foundations_ops);
+	if (pd->is_surface_rt) {
+		register_firmware_ops(&trusted_foundations_surface_ops);
+	} else {
+		register_firmware_ops(&trusted_foundations_ops);
+	}
 }
 
 void of_register_trusted_foundations(void)
@@ -175,10 +241,12 @@ void of_register_trusted_foundations(void)
 				   &pdata.version_minor);
 	if (err != 0)
 		panic("Trusted Foundation: missing version-minor property\n");
+	if (of_property_read_bool(node, "tlm,microsoft-surface-rt"))
+		pdata.is_surface_rt = true;
 	register_trusted_foundations(&pdata);
 }
 
 bool trusted_foundations_registered(void)
 {
-	return firmware_ops == &trusted_foundations_ops;
+	return firmware_ops == &trusted_foundations_ops || firmware_ops == &trusted_foundations_surface_ops;
 }

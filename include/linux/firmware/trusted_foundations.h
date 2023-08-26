@@ -37,6 +37,7 @@
 struct trusted_foundations_platform_data {
 	unsigned int version_major;
 	unsigned int version_minor;
+	bool is_surface_rt;
 };
 
 #if IS_ENABLED(CONFIG_TRUSTED_FOUNDATIONS)
