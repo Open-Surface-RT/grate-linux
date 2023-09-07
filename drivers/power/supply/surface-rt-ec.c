@@ -46,6 +46,7 @@ static const enum power_supply_property srt_bat_power_supply_props[] = {
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+	POWER_SUPPLY_PROP_CHARGE_NOW,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_MANUFACTURER,
@@ -196,6 +197,14 @@ static int srt_bat_power_supply_get_property(struct power_supply *psy,
 		ret = srt_bat_get_value(client, REGW_CHARGE_FULL_DESIGN,
 					&val->intval);
 		break;
+    	case POWER_SUPPLY_PROP_CHARGE_NOW:
+        {
+        	int full_design, capacity;
+            	ret = srt_bat_get_value(client, REGW_CHARGE_FULL, &full_design);
+            	ret = srt_bat_get_value(client, REGW_CAPACITY, &capacity);
+            	val->intval = full_design * capacity / 100;
+        }
+	        break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		ret = srt_bat_get_value(client, REGW_CURRENT_NOW, &val->intval);
 		break;
